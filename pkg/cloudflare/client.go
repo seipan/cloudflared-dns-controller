@@ -15,7 +15,7 @@ type Client interface {
 
 type DNSRecord struct {
 	ID      string
-	Name    string // hostname (e.g., "argocd.yadon3141.com")
+	Name    string // hostname (e.g., "hoge.exmple.com")
 	Type    string // "CNAME"
 	Content string // target (e.g., "<tunnel-id>.cfargotunnel.com")
 	Proxied bool
