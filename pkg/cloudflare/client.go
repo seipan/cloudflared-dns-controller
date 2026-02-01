@@ -13,6 +13,7 @@ type Client interface {
 	ListDNSRecords(ctx context.Context) ([]DNSRecord, error)
 	CreateDNSRecord(ctx context.Context, record DNSRecord) error
 	DeleteDNSRecord(ctx context.Context, recordID string) error
+	IsTunnelRecord(rec DNSRecord, tunnelID string) bool
 }
 
 type DNSRecord struct {
@@ -87,4 +88,9 @@ func (c *client) DeleteDNSRecord(ctx context.Context, recordID string) error {
 		return fmt.Errorf("failed to delete DNS record %s: %w", recordID, err)
 	}
 	return nil
+}
+
+func (r *client) IsTunnelRecord(rec DNSRecord, tunnelID string) bool {
+	return rec.Type == "CNAME" &&
+		rec.Content == tunnelID+".cfargotunnel.com"
 }
