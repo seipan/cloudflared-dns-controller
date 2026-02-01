@@ -38,6 +38,16 @@ func (r *CloudflaredDNSReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if cm.DeletionTimestamp.IsZero() {
 		return r.handleDeletion(ctx, log, cm)
 	}
+
+	if !controllerutil.ContainsFinalizer(cm, finalizerName) {
+		controllerutil.AddFinalizer(cm, finalizerName)
+		if err := r.Update(ctx, cm); err != nil {
+			log.Error(err, "unable to add finalizer to ConfigMap")
+			return ctrl.Result{}, err
+		}
+		log.Info("Finalizer added to ConfigMap")
+	}
+
 	return ctrl.Result{}, nil
 }
 
