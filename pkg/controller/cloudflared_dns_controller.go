@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,7 +49,72 @@ func (r *CloudflaredDNSReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		log.Info("Finalizer added to ConfigMap")
 	}
 
-	return ctrl.Result{}, nil
+	data, ok := cm.Data[r.TargetKey]
+	if !ok {
+		log.Info("ConfigMap does not contain target key", "key", r.TargetKey)
+		return ctrl.Result{}, nil
+	}
+	cfg, err := config.Parse(data)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	toCreate, toDelete, err := r.diff(ctx, log, cfg)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	tunnelTarget := cfg.TunnelTarget()
+	for _, hostname := range toCreate {
+		log.Info("Creating DNS record", "hostname", hostname, "target", tunnelTarget)
+		rec := cloudflare.DNSRecord{
+			Name:    hostname,
+			Type:    "CNAME",
+			Content: tunnelTarget,
+			Proxied: true,
+			TTL:     1,
+		}
+		if err := r.Cloudflare.CreateDNSRecord(ctx, rec); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	for _, rec := range toDelete {
+		log.Info("Deleting DNS record", "hostname", rec.Name)
+		if err := r.Cloudflare.DeleteDNSRecord(ctx, rec.ID); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
+}
+
+func (r *CloudflaredDNSReconciler) diff(ctx context.Context, log logr.Logger, cfg *config.CloudflaredConfig) (toCreate []string, toDelete []cloudflare.DNSRecord, err error) {
+	existingRecords, err := r.Cloudflare.ListDNSRecords(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	existingMap := make(map[string]cloudflare.DNSRecord)
+	for _, rec := range existingRecords {
+		if r.Cloudflare.IsTunnelRecord(rec, cfg.Tunnel) {
+			existingMap[rec.Name] = rec
+		}
+	}
+
+	desiredHostnames := make(map[string]struct{})
+	for _, hostname := range cfg.Hostnames() {
+		desiredHostnames[hostname] = struct{}{}
+		if _, found := existingMap[hostname]; !found {
+			toCreate = append(toCreate, hostname)
+		}
+	}
+
+	for name, rec := range existingMap {
+		if _, found := desiredHostnames[name]; !found {
+			toDelete = append(toDelete, rec)
+		}
+	}
+
+	return toCreate, toDelete, nil
 }
 
 func (r *CloudflaredDNSReconciler) handleDeletion(ctx context.Context, log logr.Logger, cm *corev1.ConfigMap) (ctrl.Result, error) {
