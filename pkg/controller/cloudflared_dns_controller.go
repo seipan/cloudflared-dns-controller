@@ -36,7 +36,7 @@ func (r *CloudflaredDNSReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if cm.DeletionTimestamp.IsZero() {
+	if !cm.DeletionTimestamp.IsZero() {
 		return r.handleDeletion(ctx, log, cm)
 	}
 
