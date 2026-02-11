@@ -127,12 +127,21 @@ func (r *CloudflaredDNSReconciler) handleDeletion(ctx context.Context, log logr.
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		tunnelID := cfg.Tunnel
+		existingRecords, err := r.Cloudflare.ListDNSRecords(ctx)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		existingMap := make(map[string]cloudflare.DNSRecord)
+		for _, rec := range existingRecords {
+			if r.Cloudflare.IsTunnelRecord(rec, cfg.Tunnel) {
+				existingMap[rec.Name] = rec
+			}
+		}
 
 		for _, hostname := range cfg.Hostnames() {
-			if r.Cloudflare.IsTunnelRecord(cloudflare.DNSRecord{Name: hostname}, tunnelID) {
-				log.Info("Deleting DNS record", "hostname", hostname)
-				if err := r.Cloudflare.DeleteDNSRecord(ctx, hostname); err != nil {
+			if rec, found := existingMap[hostname]; found {
+				log.Info("Deleting DNS record due to ConfigMap deletion", "hostname", hostname)
+				if err := r.Cloudflare.DeleteDNSRecord(ctx, rec.ID); err != nil {
 					return ctrl.Result{}, err
 				}
 			}
