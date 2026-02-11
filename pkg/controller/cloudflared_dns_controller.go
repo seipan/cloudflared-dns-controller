@@ -62,8 +62,8 @@ func (r *CloudflaredDNSReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Create DNS record count", len(toCreate))
-	log.Info("Delete DNS record count", len(toDelete))
+	log.Info("Create DNS record count", "count", len(toCreate))
+	log.Info("Delete DNS record count", "count", len(toDelete))
 
 	tunnelTarget := cfg.TunnelTarget()
 	for _, hostname := range toCreate {
