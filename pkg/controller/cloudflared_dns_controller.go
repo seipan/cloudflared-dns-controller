@@ -32,7 +32,6 @@ func (r *CloudflaredDNSReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	log := ctrl.LoggerFrom(ctx)
 	cm := &corev1.ConfigMap{}
 	if err := r.Get(ctx, req.NamespacedName, cm); err != nil {
-		log.Error(err, "unable to fetch ConfigMap")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -58,10 +57,13 @@ func (r *CloudflaredDNSReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	toCreate, toDelete, err := r.diff(ctx, log, cfg)
+	toCreate, toDelete, err := r.diff(ctx, cfg)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	log.Info("Create DNS record count", len(toCreate))
+	log.Info("Delete DNS record count", len(toDelete))
 
 	tunnelTarget := cfg.TunnelTarget()
 	for _, hostname := range toCreate {
@@ -87,7 +89,7 @@ func (r *CloudflaredDNSReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
 }
 
-func (r *CloudflaredDNSReconciler) diff(ctx context.Context, log logr.Logger, cfg *config.CloudflaredConfig) (toCreate []string, toDelete []cloudflare.DNSRecord, err error) {
+func (r *CloudflaredDNSReconciler) diff(ctx context.Context, cfg *config.CloudflaredConfig) (toCreate []string, toDelete []cloudflare.DNSRecord, err error) {
 	existingRecords, err := r.Cloudflare.ListDNSRecords(ctx)
 	if err != nil {
 		return nil, nil, err
