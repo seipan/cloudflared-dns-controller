@@ -89,7 +89,9 @@ func (r *CloudflaredDNSReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
 }
 
-func (r *CloudflaredDNSReconciler) diff(ctx context.Context, cfg *config.CloudflaredConfig) (toCreate []string, toDelete []cloudflare.DNSRecord, err error) {
+func (r *CloudflaredDNSReconciler) diff(
+	ctx context.Context, cfg *config.CloudflaredConfig,
+) (toCreate []string, toDelete []cloudflare.DNSRecord, err error) {
 	existingRecords, err := r.Cloudflare.ListDNSRecords(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -119,7 +121,9 @@ func (r *CloudflaredDNSReconciler) diff(ctx context.Context, cfg *config.Cloudfl
 	return toCreate, toDelete, nil
 }
 
-func (r *CloudflaredDNSReconciler) handleDeletion(ctx context.Context, log logr.Logger, cm *corev1.ConfigMap) (ctrl.Result, error) {
+func (r *CloudflaredDNSReconciler) handleDeletion(
+	ctx context.Context, log logr.Logger, cm *corev1.ConfigMap,
+) (ctrl.Result, error) {
 	if !controllerutil.ContainsFinalizer(cm, finalizerName) {
 		return ctrl.Result{}, nil
 	}
