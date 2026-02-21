@@ -19,6 +19,7 @@ package main
 import (
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -34,6 +35,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"github.com/seipan/cloudflared-dns-controller/pkg/cloudflare"
+	"github.com/seipan/cloudflared-dns-controller/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -57,6 +61,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var targetName, targetNamespace, targetKey string
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -75,6 +80,12 @@ func main() {
 	flag.StringVar(&metricsCertKey, "metrics-cert-key", "tls.key", "The name of the metrics server key file.")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.StringVar(&targetName, "target-name", "cloudflared",
+		"The name of the target ConfigMap to watch.")
+	flag.StringVar(&targetNamespace, "target-namespace", "cloudflared",
+		"The namespace of the target ConfigMap to watch.")
+	flag.StringVar(&targetKey, "target-key", "config.yaml",
+		"The key in the target ConfigMap that contains the cloudflared config.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -171,6 +182,27 @@ func main() {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	cfAPIToken := os.Getenv("CLOUDFLARE_API_TOKEN")
+	cfZoneID := os.Getenv("CLOUDFLARE_ZONE_ID")
+	if cfAPIToken == "" || cfZoneID == "" {
+		setupLog.Error(fmt.Errorf("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID must be set"), "missing required environment variables")
+		os.Exit(1)
+	}
+
+	cfClient := cloudflare.NewClient(cfAPIToken, cfZoneID)
+	reconciler := &controller.CloudflaredDNSReconciler{
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		Cloudflare:      cfClient,
+		TargetName:      targetName,
+		TargetNamespace: targetNamespace,
+		TargetKey:       targetKey,
+	}
+	if err := reconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CloudflaredDNSReconciler")
 		os.Exit(1)
 	}
 
