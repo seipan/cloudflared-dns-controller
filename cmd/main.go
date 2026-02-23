@@ -188,7 +188,10 @@ func main() {
 	cfAPIToken := os.Getenv("CLOUDFLARE_API_TOKEN")
 	cfZoneID := os.Getenv("CLOUDFLARE_ZONE_ID")
 	if cfAPIToken == "" || cfZoneID == "" {
-		setupLog.Error(fmt.Errorf("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID must be set"), "missing required environment variables")
+		setupLog.Error(
+			fmt.Errorf("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID must be set"),
+			"missing required environment variables",
+		)
 		os.Exit(1)
 	}
 
