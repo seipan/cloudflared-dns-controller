@@ -66,6 +66,17 @@ spec:
         image: controller:latest
         name: manager
         ports: []
+        env:
+          - name: CLOUDFLARE_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-credentials
+                key: api-token
+          - name: CLOUDFLARE_ZONE_ID
+            valueFrom:
+              secretKeyRef:
+                name: cloudflare-credentials
+                key: zone-id
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false
