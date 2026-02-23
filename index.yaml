@@ -1,0 +1,26 @@
+apiVersion: v1
+entries:
+  cloudflared-dns-controller:
+  - apiVersion: v2
+    appVersion: 0.2.0
+    created: "2026-02-23T13:41:20.713032777Z"
+    description: A Kubernetes controller that automatically manages Cloudflare DNS
+      records based on cloudflared tunnel ConfigMap
+    digest: 3fcc1b97ea616c0e1eef5e5b72f28d6178bca544eebe4c1c651bf5223e7f8c1a
+    keywords:
+    - cloudflare
+    - dns
+    - cloudflared
+    - tunnel
+    - kubernetes
+    maintainers:
+    - name: seipan
+      url: https://github.com/seipan
+    name: cloudflared-dns-controller
+    sources:
+    - https://github.com/seipan/cloudflared-dns-controller
+    type: application
+    urls:
+    - https://github.com/seipan/cloudflared-dns-controller/releases/download/cloudflared-dns-controller-0.2.0/cloudflared-dns-controller-0.2.0.tgz
+    version: 0.2.0
+generated: "2026-02-23T13:41:20.713042525Z"
