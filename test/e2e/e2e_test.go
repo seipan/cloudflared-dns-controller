@@ -72,6 +72,16 @@ var _ = Describe("Manager", Ordered, func() {
 		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", managerImage))
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
+
+		By("creating dummy cloudflare credentials secret for testing")
+		cmd = exec.Command("kubectl", "create", "secret", "generic",
+			"cloudflared-dns-controller-cloudflare-credentials",
+			"--from-literal=api-token=dummy-token",
+			"--from-literal=zone-id=dummy-zone-id",
+			"-n", namespace,
+		)
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to create cloudflare credentials secret")
 	})
 
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,
