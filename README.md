@@ -49,20 +49,6 @@ helm install cloudflared-dns-controller cloudflared-dns-controller/cloudflared-d
   --set cloudflare.existingSecret=cloudflare-credentials
 ```
 
-### Kustomize
-
-```bash
-# Create the Cloudflare credentials Secret
-kubectl create ns cloudflared-dns-controller-system
-kubectl create secret generic cloudflare-credentials \
-  --from-literal=api-token=<your-api-token> \
-  --from-literal=zone-id=<your-zone-id> \
-  -n cloudflared-dns-controller-system
-
-# Deploy the controller
-make deploy IMG=ghcr.io/seipan/cloudflared-dns-controller:<tag>
-```
-
 ## Usage
 
 First, create a ConfigMap to configure cloudflared.
@@ -92,4 +78,4 @@ See [values.yaml](charts/cloudflared-dns-controller/values.yaml) for the full li
 
 ## License
 
-This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
