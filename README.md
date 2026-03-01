@@ -1,6 +1,26 @@
 # cloudflared-dns-controller
 Kubernetes controller that automatically manages Cloudflare DNS records based on cloudflared tunnel ConfigMap.
 
+This Kubernetes controller watches cloudflared ConfigMaps and automatically updates Cloudflare DNS records when the ingress field is modified.
+
+For example, given the following ConfigMap, the controller creates a DNS record pointing api.example.com to the Cloudflare Tunnel specified in the ConfigMap. DNS records are managed via the Cloudflare API.
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+data:
+  config.yaml: |
+    tunnel: xxxxx-xxxxxxxxxx
+
+    ingress:
+    - hostname: api.example.com
+      service: http://traefik.traefik.svc.cluster.local:80
+    - service: http_status:404
+```
+
 ## Installation
 
 ### Helm
@@ -45,6 +65,8 @@ make deploy IMG=ghcr.io/seipan/cloudflared-dns-controller:<tag>
 
 ## Usage
 
+First, create a ConfigMap to configure cloudflared.
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -54,14 +76,20 @@ metadata:
 data:
   config.yaml: |
     tunnel: xxxxx-xxxxxxxxxx
-    credentials-file: /etc/cloudflared/creds/credentials.json
-    metrics: 0.0.0.0:2000
 
-    no-autoupdate: true
     ingress:
-    # The first rule proxies traffic to the httpbin sample Service defined in app.yaml
-
     - hostname: api.example.com
       service: http://traefik.traefik.svc.cluster.local:80
     - service: http_status:404
 ```
+
+Next, create an API token with Zone DNS Edit permission from the Cloudflare dashboard.
+
+Then, deploy cloudflared-dns-controller by passing the token via a Kubernetes Secret or Helm values. The controller watches the ConfigMap, calculates the diff against existing DNS records, and automatically creates or deletes records accordingly.
+
+
+See [values.yaml](charts/cloudflared-dns-controller/values.yaml) for the full list of configurable parameters.
+
+## License
+
+This project is licensed under the Apache License - see the [LICENSE](LICENSE) file for details.
